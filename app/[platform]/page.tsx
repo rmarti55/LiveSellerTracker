@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getDataSource, isPlatform } from "@/lib/core";
 import { bestTimeToGoLive, categoryDemand, topSellers } from "@/lib/metrics";
 import { Bar, Card, LiveDot, PremierBadge, SellerLink, StatTile } from "@/components/ui";
+import { getTrackedFeeds } from "@/lib/whatnot/feeds";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,9 @@ export default async function Overview({
 
   const ds = await getDataSource(platform);
   const shows = await ds.getLiveShows();
+
+  const trackedFeeds = platform === "whatnot" ? getTrackedFeeds() : [];
+  const trackedLabels = trackedFeeds.map((f) => f.label).join(", ");
 
   const live = shows
     .filter((s) => s.status === "PLAYING")
@@ -31,14 +35,29 @@ export default async function Overview({
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-xl font-semibold">Market Overview</h1>
+        <h1 className="text-xl font-semibold">
+          {platform === "whatnot" ? "Live snapshot" : "Market Overview"}
+        </h1>
         <p className="text-sm text-black/50 dark:text-white/50">
-          Live {platform === "tiktok" ? "TikTok Shop" : "Whatnot"} shopping activity, right now.
+          {platform === "whatnot" ? (
+            <>
+              {live.length} live {live.length === 1 ? "show" : "shows"} across{" "}
+              {trackedFeeds.length} tracked {trackedFeeds.length === 1 ? "category" : "categories"}
+              {trackedLabels ? `: ${trackedLabels}` : ""}. Sample from top shows per feed — not
+              all of Whatnot.
+            </>
+          ) : (
+            <>Live TikTok Shop activity, right now.</>
+          )}
         </p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatTile label="Shows live now" value={live.length} />
+        <StatTile
+          label="Shows live now"
+          value={live.length}
+          sub={platform === "whatnot" ? `of ${shows.length} fetched` : undefined}
+        />
         <StatTile label="Concurrent viewers" value={totalViewers.toLocaleString()} />
         <StatTile label="Active categories" value={demand.filter((d) => d.liveShows > 0).length} />
         <StatTile

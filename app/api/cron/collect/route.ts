@@ -59,7 +59,7 @@ export async function GET(request: Request) {
   for (const { id: platform } of PLATFORMS) {
     try {
       const ds = await getDataSource(platform);
-      const shows = await ds.getLiveShows({ limit: 50 });
+      const shows = await ds.getLiveShows();
       const rows: NewShowSnapshot[] = shows.map((s) => ({
         platform,
         showId: s.id,

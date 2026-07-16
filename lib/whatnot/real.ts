@@ -1,6 +1,12 @@
 import type { DataSource } from "@/lib/core/datasource";
-import type { Listing, LiveShow, Seller } from "@/lib/core/types";
+import type { LiveShow, Listing, Seller } from "@/lib/core/types";
 import { withWhatnotCache } from "./cache";
+import {
+  categoryFeedId,
+  getTrackedFeeds,
+  PER_FEED_LIMIT,
+  type TrackedFeed,
+} from "./feeds";
 
 // RealWhatnot — hits Whatnot's public GraphQL API server-side (anonymous,
 // cookie-less; proven in spike/probe.mjs and spike/captures/*_real.json). HTML
@@ -14,9 +20,17 @@ const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 " +
   "(KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36";
 
-// Default category feed (trading_card_games = LivestreamTagNode:899, base64'd).
-// getLiveShows({ category }) accepts a raw "CATEGORY_FEED_V2:<b64 tag id>" override.
-const DEFAULT_FEED_ID = "CATEGORY_FEED_V2:TGl2ZXN0cmVhbVRhZ05vZGU6ODk5";
+export type WhatnotFeedSnapshot = {
+  slug: string;
+  label: string;
+  totalCount: number;
+  fetched: number;
+};
+
+export type WhatnotLiveShowsScope = {
+  feeds: WhatnotFeedSnapshot[];
+  mergedCount: number;
+};
 
 type GqlResult<T> = { data?: T; errors?: Array<{ message: string }> };
 
@@ -159,16 +173,64 @@ function feedObjects(edges: any[], typename: string): any[] {
     .map((e) => e?.node?.object)
     .filter((o) => o && o.__typename === typename);
 }
+
+function mergeShows(showLists: LiveShow[][]): LiveShow[] {
+  const byId = new Map<string, LiveShow>();
+  for (const shows of showLists) {
+    for (const show of shows) {
+      const existing = byId.get(show.id);
+      if (!existing || show.activeViewers > existing.activeViewers) {
+        byId.set(show.id, show);
+      }
+    }
+  }
+  return [...byId.values()].sort((a, b) => {
+    if (a.status === "PLAYING" && b.status !== "PLAYING") return -1;
+    if (b.status === "PLAYING" && a.status !== "PLAYING") return 1;
+    return b.activeViewers - a.activeViewers;
+  });
+}
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 export class RealWhatnot implements DataSource {
-  async getLiveShows(opts?: { category?: string; limit?: number }): Promise<LiveShow[]> {
-    const feedId = opts?.category?.startsWith("CATEGORY_FEED_V2:")
-      ? opts.category
-      : DEFAULT_FEED_ID;
-    const limit = opts?.limit ?? 30;
+  /** Set after each multi-feed getLiveShows call (for UI scope copy). */
+  lastScope: WhatnotLiveShowsScope | null = null;
+
+  private async fetchFeedShows(
+    feed: TrackedFeed,
+    limit: number,
+  ): Promise<{ feed: WhatnotFeedSnapshot; shows: LiveShow[] }> {
+    const feedId = categoryFeedId(feed.tagId);
     const cacheKey = `shows:${feedId}:${limit}`;
 
+    return withWhatnotCache(cacheKey, async () => {
+      const data = await gql<{
+        feed?: { objects?: { totalCount?: number; edges?: unknown[] } };
+      }>("GetLiveShowsMin", LIVE_SHOWS_QUERY, {
+        feedId,
+        objectSize: limit,
+        objectCursor: null,
+      });
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+      const edges = (data.feed?.objects?.edges ?? []) as any[];
+      const shows = feedObjects(edges, "LiveStream").map(mapShow);
+      return {
+        feed: {
+          slug: feed.slug,
+          label: feed.label,
+          totalCount: data.feed?.objects?.totalCount ?? shows.length,
+          fetched: shows.length,
+        },
+        shows,
+      };
+    });
+  }
+
+  private async fetchSingleFeedShows(
+    feedId: string,
+    limit: number,
+  ): Promise<LiveShow[]> {
+    const cacheKey = `shows:${feedId}:${limit}`;
     return withWhatnotCache(cacheKey, async () => {
       const data = await gql<{
         feed?: { objects?: { edges?: unknown[] } };
@@ -181,6 +243,27 @@ export class RealWhatnot implements DataSource {
       const edges = (data.feed?.objects?.edges ?? []) as any[];
       return feedObjects(edges, "LiveStream").map(mapShow);
     });
+  }
+
+  async getLiveShows(opts?: { category?: string; limit?: number }): Promise<LiveShow[]> {
+    if (opts?.category?.startsWith("CATEGORY_FEED_V2:")) {
+      this.lastScope = null;
+      const limit = opts.limit ?? 30;
+      return this.fetchSingleFeedShows(opts.category, limit);
+    }
+
+    const tracked = getTrackedFeeds();
+    const perFeedLimit = opts?.limit ?? PER_FEED_LIMIT;
+    const results = await Promise.all(
+      tracked.map((feed) => this.fetchFeedShows(feed, perFeedLimit)),
+    );
+
+    const shows = mergeShows(results.map((r) => r.shows));
+    this.lastScope = {
+      feeds: results.map((r) => r.feed),
+      mergedCount: shows.length,
+    };
+    return shows;
   }
 
   async getShowListings(showId: string): Promise<Listing[]> {
@@ -197,7 +280,7 @@ export class RealWhatnot implements DataSource {
   async getSeller(username: string): Promise<Seller | null> {
     // Seller rating/premier data is embedded in live shows, so derive it from the
     // current feed rather than a separate user query (sufficient for the MVP).
-    const shows = await this.getLiveShows({ limit: 30 });
+    const shows = await this.getLiveShows();
     return shows.find((s) => s.seller.username === username)?.seller ?? null;
   }
 }
