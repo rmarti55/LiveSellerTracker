@@ -1,0 +1,9 @@
+{
+  "capturedFrom": "https://www.whatnot.com/live/a8704f15-df50-404e-bf5c-e7eb0aee490b (seller: novatcg)",
+  "note": "Real ListingNode records pulled from the live-stream page Apollo cache. Prices are in minor units (amount 100 = $1.00). currentBid/currentBidCount/auctionState populate live as auctions run.",
+  "listings": [
+    {"title":"HIGH END!","subtitle":"Near Mint","price":{"amount":100,"currency":"USD"},"quantity":728,"transactionType":"AUCTION","publicStatus":"ACTIVE","auctionDurationSec":30,"sellerUsername":"novatcg","sellerNumReviews":144437,"sellerRating":4.9},
+    {"title":"SLABS!","subtitle":"Graded · Card","price":{"amount":2300,"currency":"USD"},"quantity":314,"transactionType":"AUCTION","publicStatus":"ACTIVE","sellerUsername":"novatcg","sellerNumReviews":144437,"sellerRating":4.9},
+    {"title":"FREE MASSIVE GIVVY !","subtitle":"New","price":{"amount":0,"currency":"USD"},"transactionType":"GIVEAWAY","sellerUsername":"novatcg","sellerNumReviews":144437,"sellerRating":4.9}
+  ]
+}

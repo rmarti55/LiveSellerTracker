@@ -1,0 +1,61 @@
+{
+  "endpoint": "https://www.whatnot.com/services/graphql/",
+  "results": [
+    {
+      "name": "Reachability",
+      "op": "Probe",
+      "q": "query Probe { __typename }",
+      "v": {},
+      "expect": "HTTP 200, {data:{__typename:\"Query\"}} — endpoint answers anonymous requests",
+      "status": 200,
+      "response": {
+        "data": {
+          "__typename": "Query"
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "RealData",
+      "op": "FeedProbe",
+      "q": "query FeedProbe($id: ID!) { getFeedFromOnboardingOption(id: $id) { __typename id title } }",
+      "v": {
+        "id": "BROWSE_FEED"
+      },
+      "expect": "HTTP 200 with real Feed data (title \"Browse By Category\")",
+      "status": 200,
+      "response": {
+        "data": {
+          "getFeedFromOnboardingOption": {
+            "__typename": "Feed",
+            "id": "BROWSE_FEED:eyJzb3J0X2ZpZWxkIjogbnVsbCwgInNvcnRfZGlyZWN0aW9uIjogbnVsbH0=",
+            "title": "Browse By Category"
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "name": "IntrospectionDisabled",
+      "op": "IntrospectionQuery",
+      "q": "query IntrospectionQuery { __schema { queryType { name } } }",
+      "v": {},
+      "expect": "HTTP 400 \"introspection is disabled\" — must reconstruct queries from the app",
+      "status": 400,
+      "response": {
+        "errors": [
+          {
+            "message": "Cannot query '__schema': introspection is disabled. (ID: a1c3b6f85a735808)",
+            "locations": [
+              {
+                "line": 1,
+                "column": 28
+              }
+            ]
+          }
+        ]
+      },
+      "pass": true
+    }
+  ]
+}

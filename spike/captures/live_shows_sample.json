@@ -1,0 +1,16 @@
+{
+  "capturedFrom": "https://www.whatnot.com/category/trading_card_games",
+  "note": "Real LiveStream records from the category page Apollo cache. status PLAYING=live, CREATED=scheduled. Full run captured 31 shows; top rows shown.",
+  "capturedShows": 31,
+  "topByViewers": [
+    {"activeViewers":1642,"sellerUsername":"novatcg","isPremierShop":true,"category":"Pokémon Cards","totalWatchlistUsers":36,"title":"🔥FREE PHANTASMAL ZARD & RAPID FIRE SLABS 🔥","startTimeISO":"2026-07-15T02:55:11Z","status":"PLAYING"},
+    {"activeViewers":286,"sellerUsername":"screenworkstcg","isPremierShop":false,"category":"Pokémon Cards","totalWatchlistUsers":224,"title":"THE BEST SINGLES ON WHATNOT!!!","status":"PLAYING"},
+    {"activeViewers":157,"sellerUsername":"saw_tcg","category":"Pokémon Cards","totalWatchlistUsers":87,"status":"PLAYING"},
+    {"activeViewers":156,"sellerUsername":"kayspokeshop","isPremierShop":true,"category":"Pokémon Cards","status":"PLAYING"},
+    {"activeViewers":146,"sellerUsername":"fluffcardhouse","isPremierShop":true,"category":"Pokémon Cards","status":"PLAYING"}
+  ],
+  "scheduledUpcoming": [
+    {"sellerUsername":"supertcgjapan","startTimeISO":"2026-07-15T10:00:00Z","totalWatchlistUsers":51,"status":"CREATED"},
+    {"sellerUsername":"japan_hobby_tcg","startTimeISO":"2026-07-15T10:30:00Z","totalWatchlistUsers":84,"status":"CREATED"}
+  ]
+}
