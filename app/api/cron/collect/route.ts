@@ -12,6 +12,37 @@ import { showSnapshots, type NewShowSnapshot } from "@/db/schema";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+const INSERT_CHUNK_SIZE = 25;
+
+function formatDbError(err: unknown): string {
+  const e = err as Error & {
+    cause?: unknown;
+    code?: string;
+    detail?: string;
+  };
+  const parts = [e.message];
+  if (e.code) parts.push(`code=${e.code}`);
+  if (e.detail) parts.push(e.detail);
+  const cause =
+    e.cause instanceof Error
+      ? e.cause.message
+      : typeof e.cause === "string"
+        ? e.cause
+        : null;
+  if (cause) parts.push(cause);
+  return parts.join(" — ");
+}
+
+async function insertSnapshots(
+  db: ReturnType<typeof getDb>,
+  rows: NewShowSnapshot[],
+) {
+  for (let i = 0; i < rows.length; i += INSERT_CHUNK_SIZE) {
+    const chunk = rows.slice(i, i + INSERT_CHUNK_SIZE);
+    await db.insert(showSnapshots).values(chunk);
+  }
+}
+
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
   if (secret) {
@@ -42,12 +73,12 @@ export async function GET(request: Request) {
         sellerNumReviews: s.seller.numReviews ?? null,
         isPremier: !!s.seller.isPremierShop,
       }));
-      if (rows.length) await db.insert(showSnapshots).values(rows);
+      if (rows.length) await insertSnapshots(db, rows);
       perPlatform[platform] = rows.length;
       totalInserted += rows.length;
     } catch (err) {
       // e.g. TikTok real source not configured — skip, don't fail the whole run.
-      perPlatform[platform] = `skipped: ${(err as Error).message}`;
+      perPlatform[platform] = `skipped: ${formatDbError(err)}`;
     }
   }
 

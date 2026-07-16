@@ -45,7 +45,7 @@
       "response": {
         "errors": [
           {
-            "message": "Cannot query '__schema': introspection is disabled. (ID: a1c3b6f85a735808)",
+            "message": "Cannot query '__schema': introspection is disabled. (ID: a1c3d3ab8aeff4f2)",
             "locations": [
               {
                 "line": 1,
