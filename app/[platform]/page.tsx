@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDataSource, isPlatform } from "@/lib/core";
-import { bestTimeToGoLive, categoryDemand } from "@/lib/metrics";
+import { categoryDemand } from "@/lib/metrics";
 import {
   Card,
   formatTimeLive,
-  LiveDot,
+  PageHeader,
   PremierBadge,
   SellerLink,
   StatTile,
@@ -34,29 +34,23 @@ export default async function Overview({
     .sort((a, b) => b.activeViewers - a.activeViewers);
   const totalViewers = live.reduce((s, x) => s + x.activeViewers, 0);
   const demand = categoryDemand(shows);
-  const hours = bestTimeToGoLive(shows);
-  const peakHour = [...hours].sort((a, b) => b.totalViewers - a.totalViewers)[0];
-  const maxHour = Math.max(1, ...hours.map((h) => h.totalViewers));
+  const scheduled = shows.filter((s) => s.status === "CREATED").length;
+  const maxViewers = Math.max(1, ...live.map((s) => s.activeViewers));
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold">
-          {platform === "whatnot" ? "Live snapshot" : "Market Overview"}
-        </h1>
-        <p className="text-sm text-black/50 dark:text-white/50">
-          {platform === "whatnot" ? (
-            <>
-              {live.length} live {live.length === 1 ? "show" : "shows"} across{" "}
-              {trackedFeeds.length} tracked {trackedFeeds.length === 1 ? "category" : "categories"}
-              {trackedLabels ? `: ${trackedLabels}` : ""}. Sample from top shows per feed — not
-              all of Whatnot.
-            </>
-          ) : (
-            <>Live TikTok Shop activity, right now.</>
-          )}
-        </p>
-      </div>
+      <PageHeader title={platform === "whatnot" ? "Live snapshot" : "Market Overview"}>
+        {platform === "whatnot" ? (
+          <>
+            {live.length} live {live.length === 1 ? "show" : "shows"} across{" "}
+            {trackedFeeds.length} tracked {trackedFeeds.length === 1 ? "category" : "categories"}
+            {trackedLabels ? `: ${trackedLabels}` : ""}. Sample from top shows per feed — not all
+            of Whatnot.
+          </>
+        ) : (
+          <>Live TikTok Shop activity, right now.</>
+        )}
+      </PageHeader>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatTile
@@ -67,70 +61,46 @@ export default async function Overview({
         <StatTile label="Concurrent viewers" value={totalViewers.toLocaleString()} />
         <StatTile label="Active categories" value={demand.filter((d) => d.liveShows > 0).length} />
         <StatTile
-          label="Peak hour (UTC)"
-          value={`${String(peakHour.hour).padStart(2, "0")}:00`}
-          sub={`${peakHour.totalViewers.toLocaleString()} viewers`}
+          label="Scheduled shows"
+          value={scheduled}
+          sub={scheduled > 0 ? "starting soon" : undefined}
         />
       </div>
 
       <Card
         title="Live now — by concurrent viewers"
-        action={<span className="text-xs text-black/40 dark:text-white/40">{live.length} shows</span>}
+        action={<span className="text-xs text-ink-faint">{live.length} shows</span>}
       >
-        <ul className="divide-y divide-black/5 dark:divide-white/10">
+        <ul className="divide-y divide-line-soft">
           {live.map((s) => (
             <li key={s.id} className="px-4 py-3 flex items-center gap-4">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <LiveDot />
-                  <Link
-                    href={`/${platform}/shows/${s.id}`}
-                    className="text-sm font-medium hover:underline line-clamp-1"
-                  >
-                    {s.title}
-                  </Link>
-                </div>
-                <div className="mt-0.5 text-xs text-black/50 dark:text-white/50">
+                <Link
+                  href={`/${platform}/shows/${s.id}`}
+                  className="text-base font-semibold hover:text-signal hover:underline line-clamp-1"
+                >
+                  {s.title}
+                </Link>
+                <div className="mt-0.5 text-xs">
                   <SellerLink platform={platform} username={s.seller.username} />
                   {s.seller.isPremierShop && <PremierBadge />}
-                  {" · "}
-                  {s.categories.join(", ")}
-                  {" · "}
-                  {formatTimeLive(s.startTime)}
+                </div>
+                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-normal text-ink-muted">
+                  <span>{s.categories.join(", ")}</span>
+                  <span>{formatTimeLive(s.startTime)}</span>
                   {s.totalWatchlistUsers > 0 && (
-                    <>
-                      {" · "}
-                      {s.totalWatchlistUsers.toLocaleString()} watchlisted
-                    </>
+                    <span>{s.totalWatchlistUsers.toLocaleString()} watchlisted</span>
                   )}
                 </div>
               </div>
-              <ViewerBar viewers={s.activeViewers} totalViewers={totalViewers} />
+              <ViewerBar
+                viewers={s.activeViewers}
+                totalViewers={totalViewers}
+                barMax={maxViewers}
+              />
             </li>
           ))}
         </ul>
-      </Card>
-
-      <Card title="Best time to go live (UTC hour)">
-        <div className="p-4">
-          <div className="flex items-end gap-1 h-32">
-            {hours.map((h) => (
-              <div key={h.hour} className="flex-1 flex flex-col items-center gap-1" title={`${h.hour}:00 — ${h.totalViewers} viewers`}>
-                <div
-                  className="w-full rounded-t bg-indigo-500/80"
-                  style={{ height: `${Math.round((h.totalViewers / maxHour) * 100)}%` }}
-                />
-              </div>
-            ))}
-          </div>
-          <div className="mt-2 flex justify-between text-[10px] text-black/40 dark:text-white/40">
-            <span>00</span><span>06</span><span>12</span><span>18</span><span>23</span>
-          </div>
-          <p className="mt-3 text-xs text-black/60 dark:text-white/60">
-            👉 Busiest window is <b>{String(peakHour.hour).padStart(2, "0")}:00 UTC</b> — go live
-            around then to catch the most buyers.
-          </p>
-        </div>
       </Card>
     </div>
   );

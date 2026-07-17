@@ -1,6 +1,31 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+/** Page title + optional muted subtitle (and optional back link). */
+export function PageHeader({
+  title,
+  children,
+  back,
+}: {
+  title: ReactNode;
+  children?: ReactNode;
+  back?: ReactNode;
+}) {
+  return (
+    <div>
+      {back}
+      <h1
+        className={`font-display text-3xl sm:text-4xl font-bold tracking-tight text-ink ${back ? "mt-1" : ""}`}
+      >
+        {title}
+      </h1>
+      {children != null && (
+        <div className="mt-2 text-sm sm:text-base font-normal text-ink-muted">{children}</div>
+      )}
+    </div>
+  );
+}
+
 export function StatTile({
   label,
   value,
@@ -11,13 +36,11 @@ export function StatTile({
   sub?: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-black/10 dark:border-white/15 p-4 bg-black/[.02] dark:bg-white/[.03]">
-      <div className="text-xs uppercase tracking-wide text-black/50 dark:text-white/50">
-        {label}
-      </div>
-      <div className="mt-1 text-2xl font-semibold tabular-nums">{value}</div>
+    <div className="rounded-xl border border-line bg-panel p-4 shadow-sm">
+      <div className="text-xs font-medium uppercase tracking-widest text-ink-muted">{label}</div>
+      <div className="mt-1 font-display text-3xl font-bold tabular-nums text-ink">{value}</div>
       {sub != null && (
-        <div className="mt-0.5 text-xs text-black/50 dark:text-white/50">{sub}</div>
+        <div className="mt-0.5 text-xs font-normal text-ink-faint">{sub}</div>
       )}
     </div>
   );
@@ -33,9 +56,9 @@ export function Card({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-black/10 dark:border-white/15 overflow-hidden">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-black/10 dark:border-white/15">
-        <h2 className="text-sm font-semibold">{title}</h2>
+    <section className="rounded-xl border border-line bg-panel overflow-hidden shadow-sm">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-line-soft">
+        <h2 className="text-xs font-medium uppercase tracking-widest text-ink-muted">{title}</h2>
         {action}
       </header>
       <div className="p-0">{children}</div>
@@ -47,11 +70,8 @@ export function Card({
 export function Bar({ value, max }: { value: number; max: number }) {
   const pct = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0;
   return (
-    <div className="h-2 w-full rounded-full bg-black/10 dark:bg-white/10">
-      <div
-        className="h-2 rounded-full bg-indigo-500"
-        style={{ width: `${pct}%` }}
-      />
+    <div className="bar-track">
+      <div className="bar-fill transition-[width] duration-300 ease-out" style={{ width: `${pct}%` }} />
     </div>
   );
 }
@@ -77,20 +97,23 @@ function formatAudienceShare(viewers: number, totalViewers: number): string {
 export function ViewerBar({
   viewers,
   totalViewers,
+  barMax,
 }: {
   viewers: number;
   totalViewers: number;
+  /** Top show's viewer count — scales bar width for readable comparison. */
+  barMax: number;
 }) {
   return (
     <div className="w-44 shrink-0 text-right">
-      <div className="text-sm font-semibold tabular-nums">
+      <div className="font-display text-base font-bold tabular-nums text-ink">
         {viewers.toLocaleString()}{" "}
-        <span className="text-xs font-normal text-black/50 dark:text-white/50">viewers</span>
+        <span className="text-xs font-normal font-sans text-ink-faint">viewers</span>
       </div>
-      <div className="mt-1">
-        <Bar value={viewers} max={totalViewers} />
+      <div className="mt-1.5">
+        <Bar value={viewers} max={barMax} />
       </div>
-      <div className="mt-0.5 text-[10px] text-black/40 dark:text-white/40">
+      <div className="mt-1 text-xs font-normal text-ink-faint">
         {formatAudienceShare(viewers, totalViewers)}
       </div>
     </div>
@@ -101,11 +124,11 @@ export function VerdictBadge({ verdict }: { verdict: "hot" | "warm" | "cold" | "
   const map = {
     hot: { emoji: "🔥", label: "Selling fast", cls: "bg-red-500/15 text-red-600 dark:text-red-400" },
     warm: { emoji: "🟡", label: "Moving", cls: "bg-amber-400/20 text-amber-700 dark:text-amber-300" },
-    cold: { emoji: "🐢", label: "Slow", cls: "bg-black/10 dark:bg-white/10 text-black/50 dark:text-white/50" },
-    unknown: { emoji: "•", label: "Live", cls: "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40" },
+    cold: { emoji: "🐢", label: "Slow", cls: "bg-line-soft text-ink-muted" },
+    unknown: { emoji: "•", label: "Live", cls: "bg-panel text-ink-faint" },
   }[verdict];
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${map.cls}`}>
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${map.cls}`}>
       {map.emoji} {map.label}
     </span>
   );
@@ -113,16 +136,22 @@ export function VerdictBadge({ verdict }: { verdict: "hot" | "warm" | "cold" | "
 
 export function PremierBadge() {
   return (
-    <span className="ml-1.5 inline-flex items-center rounded-full bg-amber-400/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+    <span className="ml-1.5 inline-flex items-center rounded-full bg-amber-400/20 px-1.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
       Premier
     </span>
   );
 }
 
+/** Soft live indicator — pulse + small LIVE so titles stay primary. */
 export function LiveDot() {
   return (
-    <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400">
-      <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" /> LIVE
+    <span
+      className="inline-flex items-center gap-1.5 shrink-0 text-red-600 dark:text-red-400"
+      role="status"
+      aria-label="Live"
+    >
+      <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" aria-hidden />
+      <span className="text-[10px] font-semibold tracking-widest uppercase opacity-90">Live</span>
     </span>
   );
 }
@@ -137,7 +166,7 @@ export function SellerLink({
   return (
     <Link
       href={`/${platform}/sellers/${encodeURIComponent(username)}`}
-      className="font-medium hover:underline"
+      className="text-sm font-medium text-ink hover:text-signal hover:underline"
     >
       {username}
     </Link>

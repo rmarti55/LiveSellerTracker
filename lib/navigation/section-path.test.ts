@@ -10,6 +10,7 @@ describe("sectionPathForPathname", () => {
     expect(sectionPathForPathname("/whatnot/categories", "whatnot")).toBe("/categories");
     expect(sectionPathForPathname("/whatnot/sellers", "whatnot")).toBe("/sellers");
     expect(sectionPathForPathname("/whatnot/whats-selling", "whatnot")).toBe("/whats-selling");
+    expect(sectionPathForPathname("/whatnot/best-time", "whatnot")).toBe("/best-time");
   });
 
   it("returns parent section for nested routes", () => {

@@ -20,8 +20,8 @@ export default async function PlatformLayout({
   return (
     <>
       <PlatformNav platform={platform} sourceLabel={sourceLabel(platform)} />
-      <main className="mx-auto w-full max-w-6xl px-4 py-6 flex-1">{children}</main>
-      <footer className="border-t border-black/10 dark:border-white/15 py-4 text-center text-xs text-black/40 dark:text-white/40">
+      <main className="mx-auto w-full max-w-6xl px-4 py-8 flex-1">{children}</main>
+      <footer className="border-t border-line py-4 text-center text-xs text-ink-faint">
         Public market data · built for live-sellers
       </footer>
     </>

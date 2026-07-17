@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getDataSource, isPlatform } from "@/lib/core";
 import { categoryDemand, heatVerdict } from "@/lib/metrics";
-import { Bar, Card, VerdictBadge } from "@/components/ui";
+import { Bar, Card, PageHeader, VerdictBadge } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -20,16 +20,13 @@ export default async function CategoriesPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold">Category Demand</h1>
-        <p className="text-sm text-black/50 dark:text-white/50">
-          Where the eyeballs are — concurrent viewers and watchlist interest by category.
-        </p>
-      </div>
+      <PageHeader title="Category Demand">
+        Where the eyeballs are — concurrent viewers and watchlist interest by category.
+      </PageHeader>
       <Card title={`${demand.length} categories`}>
         <table className="w-full text-sm">
-          <thead className="text-xs text-black/40 dark:text-white/40">
-            <tr className="border-b border-black/5 dark:border-white/10">
+          <thead className="text-xs text-ink-faint">
+            <tr className="border-b border-line-soft">
               <th className="text-left font-medium px-4 py-2">Category</th>
               <th className="text-left font-medium px-4 py-2">Demand</th>
               <th className="text-right font-medium px-4 py-2">Live shows</th>
@@ -38,16 +35,18 @@ export default async function CategoriesPage({
               <th className="px-4 py-2 w-32"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-black/5 dark:divide-white/10">
+          <tbody className="divide-y divide-line-soft">
             {demand.map((d) => (
               <tr key={d.category}>
-                <td className="px-4 py-2.5">{d.category}</td>
-                <td className="px-4 py-2.5"><VerdictBadge verdict={heatVerdict(d.totalViewers, max)} /></td>
+                <td className="px-4 py-2.5 font-semibold">{d.category}</td>
+                <td className="px-4 py-2.5">
+                  <VerdictBadge verdict={heatVerdict(d.totalViewers, max)} />
+                </td>
                 <td className="px-4 py-2.5 text-right tabular-nums">{d.liveShows}</td>
-                <td className="px-4 py-2.5 text-right tabular-nums text-black/50 dark:text-white/50">
+                <td className="px-4 py-2.5 text-right tabular-nums text-ink-muted">
                   {d.totalWatchlist.toLocaleString()}
                 </td>
-                <td className="px-4 py-2.5 text-right tabular-nums">
+                <td className="px-4 py-2.5 text-right tabular-nums font-semibold">
                   {d.totalViewers.toLocaleString()}
                 </td>
                 <td className="px-4 py-2.5">

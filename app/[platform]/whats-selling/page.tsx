@@ -7,7 +7,7 @@ import {
   sellThroughByCategory,
   type DemandItem,
 } from "@/lib/metrics";
-import { Bar, Card, SellerLink, StatTile, VerdictBadge } from "@/components/ui";
+import { Bar, Card, PageHeader, SellerLink, StatTile, VerdictBadge } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -59,14 +59,11 @@ export default async function WhatsSellingPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-xl font-semibold">What&apos;s Selling — right now</h1>
-        <p className="text-sm text-black/50 dark:text-white/50">
-          {signal
-            ? "What's actually moving across the busiest live shows, so you source what sells — not a dead pile. Demand = units sold."
-            : "The live catalog + price ranges across the busiest shows. On Whatnot, per-item sell-through isn't exposed in a snapshot — true velocity unlocks once the collector has history."}
-        </p>
-      </div>
+      <PageHeader title="What's Selling — right now">
+        {signal
+          ? "What's actually moving across the busiest live shows, so you source what sells — not a dead pile. Demand = units sold."
+          : "The live catalog + price ranges across the busiest shows. On Whatnot, per-item sell-through isn't exposed in a snapshot — true velocity unlocks once the collector has history."}
+      </PageHeader>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatTile label="Items live" value={rows.length} />
@@ -85,23 +82,29 @@ export default async function WhatsSellingPage({
 
       {rows.length === 0 ? (
         <Card title="No listing data">
-          <p className="px-4 py-6 text-sm text-black/50 dark:text-white/50">
+          <p className="px-4 py-6 text-sm text-ink-muted">
             No live listings to analyze right now
             {platform === "tiktok" ? " (TikTok sample data is limited)." : "."}
           </p>
         </Card>
       ) : (
         <>
-          <Card title={signal ? "What category is selling — source into demand" : "Categories live now — price ranges"}>
-            <ul className="divide-y divide-black/5 dark:divide-white/10">
+          <Card
+            title={
+              signal
+                ? "What category is selling — source into demand"
+                : "Categories live now — price ranges"
+            }
+          >
+            <ul className="divide-y divide-line-soft">
               {[...cats]
                 .sort((a, b) => (signal ? b.demandScore - a.demandScore : b.items - a.items))
                 .map((c) => (
                   <li key={c.category} className="px-4 py-3 flex items-center gap-3 text-sm">
-                    <span className="flex-1 truncate font-medium">{c.category}</span>
-                    <span className="text-xs text-black/40 dark:text-white/40">{c.items} items</span>
+                    <span className="flex-1 truncate font-semibold">{c.category}</span>
+                    <span className="text-xs text-ink-faint">{c.items} items</span>
                     {signal ? <VerdictBadge verdict={c.verdict} /> : null}
-                    <span className="w-24 text-right tabular-nums text-black/50 dark:text-white/50">
+                    <span className="w-24 text-right tabular-nums text-ink-muted">
                       ~{money(c.medianPriceCents)}
                     </span>
                     {signal && (
@@ -116,24 +119,31 @@ export default async function WhatsSellingPage({
 
           <Card
             title={signal ? "Hottest items right now" : "Live listings — by price"}
-            action={<span className="text-xs text-black/40 dark:text-white/40">{signal ? "by demand" : "highest first"}</span>}
+            action={
+              <span className="text-xs text-ink-faint">
+                {signal ? "by demand" : "highest first"}
+              </span>
+            }
           >
-            <ul className="divide-y divide-black/5 dark:divide-white/10">
+            <ul className="divide-y divide-line-soft">
               {[...rows]
                 .sort((a, b) => (signal ? 0 : b.priceCents - a.priceCents))
                 .slice(0, 30)
                 .map((r, i) => (
                   <li key={`${r.title}-${i}`} className="px-4 py-3 flex items-center gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium line-clamp-1">{r.title}</div>
-                      <div className="text-xs text-black/50 dark:text-white/50">
-                        {r.category} · <SellerLink platform={platform} username={r.seller} />
+                      <div className="text-base font-semibold line-clamp-1">{r.title}</div>
+                      <div className="mt-0.5 text-xs text-ink-muted">
+                        <span>{r.category}</span>
+                        {" · "}
+                        <SellerLink platform={platform} username={r.seller} />
                       </div>
                     </div>
                     <VerdictBadge verdict={r.verdict} />
                     {r.demandScore > 0 && (
-                      <span className="text-xs tabular-nums text-black/40 dark:text-white/40 w-20 text-right">
-                        {r.demandScore.toLocaleString()} {r.demandBasis === "sold" ? "sold" : "bids"}
+                      <span className="text-xs tabular-nums text-ink-faint w-20 text-right">
+                        {r.demandScore.toLocaleString()}{" "}
+                        {r.demandBasis === "sold" ? "sold" : "bids"}
                       </span>
                     )}
                     <span className="text-sm tabular-nums font-medium w-16 text-right">

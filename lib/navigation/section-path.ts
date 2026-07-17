@@ -7,7 +7,12 @@ export function sectionPathForPathname(pathname: string, platform: Platform): st
   const rest = pathname.slice(prefix.length).replace(/^\//, "");
   if (!rest) return "";
   const firstSeg = rest.split("/")[0];
-  if (firstSeg === "whats-selling" || firstSeg === "sellers" || firstSeg === "categories") {
+  if (
+    firstSeg === "whats-selling" ||
+    firstSeg === "best-time" ||
+    firstSeg === "sellers" ||
+    firstSeg === "categories"
+  ) {
     return `/${firstSeg}`;
   }
   return "";

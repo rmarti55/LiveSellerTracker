@@ -8,6 +8,7 @@ import { isSectionActive, sectionPathForPathname } from "@/lib/navigation/sectio
 export const SECTIONS = [
   { seg: "", label: "Overview" },
   { seg: "whats-selling", label: "What's Selling" },
+  { seg: "best-time", label: "Best Time" },
   { seg: "sellers", label: "Top Sellers" },
   { seg: "categories", label: "Categories" },
 ] as const;
@@ -23,22 +24,33 @@ export function PlatformNav({
   const sectionPath = sectionPathForPathname(pathname, platform);
 
   return (
-    <header className="border-b border-black/10 dark:border-white/15">
-      <div className="mx-auto max-w-6xl px-4">
+    <header className="relative border-b border-line bg-panel/90 backdrop-blur-sm">
+      <div
+        className="absolute inset-x-0 top-0 h-32 pointer-events-none opacity-40"
+        style={{
+          background:
+            "radial-gradient(ellipse 70% 100% at 50% 0%, color-mix(in srgb, var(--color-signal) 18%, transparent), transparent)",
+        }}
+        aria-hidden
+      />
+      <div className="relative mx-auto max-w-6xl px-4">
         <div className="flex items-center gap-4 sm:gap-6 h-14">
-          <Link href={`/${platform}`} className="font-semibold tracking-tight shrink-0">
-            Live<span className="text-indigo-500">Intel</span>
+          <Link
+            href={`/${platform}`}
+            className="font-display text-xl font-bold tracking-tight shrink-0 text-ink"
+          >
+            Live<span className="text-teal-700">Intel</span>
           </Link>
 
-          <div className="flex items-center rounded-full border border-black/10 dark:border-white/15 p-0.5 text-sm shrink-0">
+          <div className="flex items-center rounded-md border border-line bg-background p-0.5 text-sm shrink-0 shadow-sm">
             {PLATFORMS.map((p) => (
               <Link
                 key={p.id}
                 href={`/${p.id}${sectionPath}`}
-                className={`px-3 py-1 rounded-full transition-colors whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-[5px] transition-all duration-200 whitespace-nowrap font-medium ${
                   p.id === platform
-                    ? "bg-indigo-500 text-white"
-                    : "text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white"
+                    ? "platform-active shadow-sm"
+                    : "text-ink hover:text-ink"
                 }`}
               >
                 {p.label}
@@ -46,13 +58,13 @@ export function PlatformNav({
             ))}
           </div>
 
-          <span className="ml-auto text-xs rounded-full border border-black/10 dark:border-white/15 px-2 py-0.5 text-black/50 dark:text-white/50 shrink-0">
+          <span className="ml-auto text-[11px] uppercase tracking-wide rounded-md border border-line-soft px-2 py-1 text-ink-faint shrink-0">
             {sourceLabel}
           </span>
         </div>
 
         <nav
-          className="-mx-4 px-4 flex items-center gap-1 overflow-x-auto pb-3 scrollbar-none"
+          className="-mx-4 px-4 flex items-center gap-5 sm:gap-8 overflow-x-auto border-t border-line-soft scrollbar-none"
           aria-label="Section navigation"
         >
           {SECTIONS.map((s) => {
@@ -63,10 +75,10 @@ export function PlatformNav({
                 key={s.seg || "overview"}
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                className={`shrink-0 py-3 text-sm transition-colors duration-200 whitespace-nowrap border-b-2 -mb-px ${
                   active
-                    ? "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400"
-                    : "text-black/60 dark:text-white/60 hover:text-black dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5"
+                    ? "border-teal-700 text-ink font-semibold"
+                    : "border-transparent text-ink-muted hover:text-ink font-medium"
                 }`}
               >
                 {s.label}
