@@ -1,6 +1,8 @@
 import type { HourDemand } from "@/lib/metrics";
+import { formatPacificHour, formatPacificHourShort } from "@/lib/time/pacific";
 
 const TRACK_HEIGHT_PX = 128;
+const AXIS_HOURS = [0, 6, 12, 18, 23] as const;
 
 export function HourDemandChart({ hours }: { hours: HourDemand[] }) {
   const maxHour = Math.max(1, ...hours.map((h) => h.totalViewers));
@@ -17,7 +19,11 @@ export function HourDemandChart({ hours }: { hours: HourDemand[] }) {
 
   return (
     <>
-      <div className="flex h-32 items-end gap-1" role="img" aria-label="Viewer demand by UTC hour">
+      <div
+        className="flex h-32 items-end gap-1"
+        role="img"
+        aria-label="Viewer demand by hour, Pacific Time"
+      >
         {hours.map((h) => {
           const heightPx =
             h.totalViewers > 0
@@ -27,7 +33,7 @@ export function HourDemandChart({ hours }: { hours: HourDemand[] }) {
             <div
               key={h.hour}
               className="flex flex-1 flex-col justify-end"
-              title={`${String(h.hour).padStart(2, "0")}:00 — ${h.totalViewers.toLocaleString()} viewers · ${h.showCount} ${h.showCount === 1 ? "show" : "shows"}`}
+              title={`${formatPacificHour(h.hour)} — ${h.totalViewers.toLocaleString()} viewers · ${h.showCount} ${h.showCount === 1 ? "show" : "shows"}`}
             >
               <div
                 className="w-full rounded-t bg-teal-600"
@@ -38,11 +44,9 @@ export function HourDemandChart({ hours }: { hours: HourDemand[] }) {
         })}
       </div>
       <div className="mt-2 flex justify-between text-xs text-ink-faint">
-        <span>00</span>
-        <span>06</span>
-        <span>12</span>
-        <span>18</span>
-        <span>23</span>
+        {AXIS_HOURS.map((hour) => (
+          <span key={hour}>{formatPacificHourShort(hour)}</span>
+        ))}
       </div>
     </>
   );

@@ -1,5 +1,6 @@
 import type { DataSource } from "@/lib/core/datasource";
 import type { LiveShow, Listing, Seller } from "@/lib/core/types";
+import { feedBySlug } from "./category-slug";
 import { FIXTURE_LISTINGS, FIXTURE_SELLERS, FIXTURE_SHOWS } from "./fixtures";
 
 /**
@@ -11,10 +12,15 @@ export class StubWhatnot implements DataSource {
   async getLiveShows(opts?: { category?: string; limit?: number }): Promise<LiveShow[]> {
     let shows = FIXTURE_SHOWS;
     if (opts?.category) {
-      const c = opts.category.toLowerCase();
-      shows = shows.filter((s) =>
-        s.categories.some((cat) => cat.toLowerCase().includes(c)),
-      );
+      const feed = feedBySlug(opts.category);
+      if (feed) {
+        shows = shows.filter((s) => s.categories.some((cat) => cat === feed.label));
+      } else {
+        const c = opts.category.toLowerCase();
+        shows = shows.filter((s) =>
+          s.categories.some((cat) => cat.toLowerCase().includes(c)),
+        );
+      }
     }
     shows = [...shows].sort((a, b) => b.activeViewers - a.activeViewers);
     return opts?.limit ? shows.slice(0, opts.limit) : shows;

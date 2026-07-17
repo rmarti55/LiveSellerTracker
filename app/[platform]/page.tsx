@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDataSource, isPlatform } from "@/lib/core";
-import { categoryDemand } from "@/lib/metrics";
+import { bestTimeToGoLive, categoryDemand } from "@/lib/metrics";
+import { CategoryFilter } from "@/components/category-filter";
+import { DoThisNext } from "@/components/do-this-next";
+import { ScopeBanner } from "@/components/scope-banner";
 import {
   Card,
   formatTimeLive,
@@ -11,20 +14,29 @@ import {
   StatTile,
   ViewerBar,
 } from "@/components/ui";
+import { feedBySlug } from "@/lib/whatnot/category-slug";
+import { getWhatnotScope } from "@/lib/whatnot/scope";
 import { getTrackedFeeds } from "@/lib/whatnot/feeds";
 
 export const dynamic = "force-dynamic";
 
 export default async function Overview({
   params,
+  searchParams,
 }: {
   params: Promise<{ platform: string }>;
+  searchParams: Promise<{ category?: string }>;
 }) {
   const { platform } = await params;
+  const { category: categorySlug } = await searchParams;
   if (!isPlatform(platform)) notFound();
 
+  const activeFeed = feedBySlug(categorySlug);
   const ds = await getDataSource(platform);
-  const shows = await ds.getLiveShows();
+  const shows = await ds.getLiveShows(
+    activeFeed ? { category: activeFeed.slug } : undefined,
+  );
+  const scope = platform === "whatnot" ? getWhatnotScope(ds) : null;
 
   const trackedFeeds = platform === "whatnot" ? getTrackedFeeds() : [];
   const trackedLabels = trackedFeeds.map((f) => f.label).join(", ");
@@ -36,6 +48,11 @@ export default async function Overview({
   const demand = categoryDemand(shows);
   const scheduled = shows.filter((s) => s.status === "CREATED").length;
   const maxViewers = Math.max(1, ...live.map((s) => s.activeViewers));
+  const hotCategory = demand.find((d) => d.liveShows > 0)?.category ?? demand[0]?.category ?? null;
+  const hours = bestTimeToGoLive(shows);
+  const peakHour = hours.some((h) => h.totalViewers > 0)
+    ? [...hours].sort((a, b) => b.totalViewers - a.totalViewers)[0].hour
+    : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -44,13 +61,25 @@ export default async function Overview({
           <>
             {live.length} live {live.length === 1 ? "show" : "shows"} across{" "}
             {trackedFeeds.length} tracked {trackedFeeds.length === 1 ? "category" : "categories"}
-            {trackedLabels ? `: ${trackedLabels}` : ""}. Sample from top shows per feed — not all
-            of Whatnot.
+            {trackedLabels ? `: ${trackedLabels}` : ""}.
+            {!scope && " Sample from top shows per feed — not all of Whatnot."}
           </>
         ) : (
           <>Live TikTok Shop activity, right now.</>
         )}
       </PageHeader>
+
+      {platform === "whatnot" && (
+        <CategoryFilter
+          platform={platform}
+          basePath={`/${platform}`}
+          activeSlug={activeFeed?.slug}
+        />
+      )}
+
+      {scope && <ScopeBanner scope={scope} />}
+
+      <DoThisNext platform={platform} hotCategory={hotCategory} peakHour={peakHour} />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatTile
@@ -71,36 +100,46 @@ export default async function Overview({
         title="Live now — by concurrent viewers"
         action={<span className="text-xs text-ink-faint">{live.length} shows</span>}
       >
-        <ul className="divide-y divide-line-soft">
-          {live.map((s) => (
-            <li key={s.id} className="px-4 py-3 flex items-center gap-4">
-              <div className="flex-1 min-w-0">
-                <Link
-                  href={`/${platform}/shows/${s.id}`}
-                  className="text-base font-semibold hover:text-signal hover:underline line-clamp-1"
-                >
-                  {s.title}
-                </Link>
-                <div className="mt-0.5 text-xs">
-                  <SellerLink platform={platform} username={s.seller.username} />
-                  {s.seller.isPremierShop && <PremierBadge />}
+        {live.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-ink-muted">
+            Nothing live in this snapshot right now. Check{" "}
+            <Link href={`/${platform}/best-time`} className="text-signal hover:underline">
+              Best Time
+            </Link>{" "}
+            for peak hours, or try another category.
+          </p>
+        ) : (
+          <ul className="divide-y divide-line-soft">
+            {live.map((s) => (
+              <li key={s.id} className="px-4 py-3 flex items-center gap-4">
+                <div className="flex-1 min-w-0">
+                  <Link
+                    href={`/${platform}/shows/${s.id}`}
+                    className="text-base font-semibold hover:text-signal hover:underline line-clamp-1"
+                  >
+                    {s.title}
+                  </Link>
+                  <div className="mt-0.5 text-xs">
+                    <SellerLink platform={platform} username={s.seller.username} />
+                    {s.seller.isPremierShop && <PremierBadge />}
+                  </div>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-normal text-ink-muted">
+                    <span>{s.categories.join(", ")}</span>
+                    <span>{formatTimeLive(s.startTime)}</span>
+                    {s.totalWatchlistUsers > 0 && (
+                      <span>{s.totalWatchlistUsers.toLocaleString()} watchlisted</span>
+                    )}
+                  </div>
                 </div>
-                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs font-normal text-ink-muted">
-                  <span>{s.categories.join(", ")}</span>
-                  <span>{formatTimeLive(s.startTime)}</span>
-                  {s.totalWatchlistUsers > 0 && (
-                    <span>{s.totalWatchlistUsers.toLocaleString()} watchlisted</span>
-                  )}
-                </div>
-              </div>
-              <ViewerBar
-                viewers={s.activeViewers}
-                totalViewers={totalViewers}
-                barMax={maxViewers}
-              />
-            </li>
-          ))}
-        </ul>
+                <ViewerBar
+                  viewers={s.activeViewers}
+                  totalViewers={totalViewers}
+                  barMax={maxViewers}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
       </Card>
     </div>
   );

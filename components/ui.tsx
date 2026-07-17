@@ -125,7 +125,7 @@ export function VerdictBadge({ verdict }: { verdict: "hot" | "warm" | "cold" | "
     hot: { emoji: "🔥", label: "Selling fast", cls: "bg-red-500/15 text-red-600 dark:text-red-400" },
     warm: { emoji: "🟡", label: "Moving", cls: "bg-amber-400/20 text-amber-700 dark:text-amber-300" },
     cold: { emoji: "🐢", label: "Slow", cls: "bg-line-soft text-ink-muted" },
-    unknown: { emoji: "•", label: "Live", cls: "bg-panel text-ink-faint" },
+    unknown: { emoji: "•", label: "No signal yet", cls: "bg-panel text-ink-faint" },
   }[verdict];
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${map.cls}`}>

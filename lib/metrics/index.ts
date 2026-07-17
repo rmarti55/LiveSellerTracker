@@ -1,4 +1,5 @@
 import type { LiveShow, Listing } from "@/lib/core/types";
+import { pacificHourFromTimestamp } from "@/lib/time/pacific";
 
 // Pure metric functions — the analytics a live-seller pays for. No I/O; every
 // input comes from the DataSource seam so these are trivially unit-testable.
@@ -94,7 +95,7 @@ export function pricePoints(listings: Listing[]): PricePoints {
 export type HourDemand = { hour: number; totalViewers: number; showCount: number };
 
 /**
- * Best time to go live: bucket shows by UTC hour-of-day of their start time,
+ * Best time to go live: bucket shows by Pacific hour-of-day of their start time,
  * weighted by concurrent viewers. Highest-viewer hours = least-contested / most
  * active windows depending on how the seller reads it.
  */
@@ -106,7 +107,7 @@ export function bestTimeToGoLive(shows: LiveShow[]): HourDemand[] {
   }));
   for (const s of shows) {
     if (!s.startTime) continue;
-    const hour = new Date(s.startTime).getUTCHours();
+    const hour = pacificHourFromTimestamp(s.startTime);
     buckets[hour].totalViewers += s.activeViewers;
     buckets[hour].showCount += 1;
   }

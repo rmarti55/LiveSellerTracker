@@ -55,11 +55,19 @@ export default async function ShowPage({
       </div>
 
       {pp.count > 0 && (
-        <div className="grid grid-cols-3 gap-3">
-          <StatTile label="Low" value={cents(pp.minCents)} />
-          <StatTile label="Average" value={cents(pp.avgCents)} />
-          <StatTile label="High" value={cents(pp.maxCents)} />
-        </div>
+        <>
+          <div className="grid grid-cols-3 gap-3">
+            <StatTile label="Low" value={cents(pp.minCents)} />
+            <StatTile label="Average" value={cents(pp.avgCents)} />
+            <StatTile label="High" value={cents(pp.maxCents)} />
+          </div>
+          <p className="text-sm text-ink-muted">
+            Charge around{" "}
+            <span className="font-semibold text-ink">{cents(pp.medianCents)}</span>
+            {" — "}
+            most items here land between {cents(pp.minCents)} and {cents(pp.maxCents)}.
+          </p>
+        </>
       )}
 
       <Card title={`Listings (${listings.length})`}>

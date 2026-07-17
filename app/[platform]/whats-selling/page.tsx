@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getDataSource, isPlatform } from "@/lib/core";
+import { getDataSource, isPlatform, type Platform } from "@/lib/core";
 import { formatMoney } from "@/lib/core/types";
 import {
   hasDemandSignal,
@@ -7,7 +8,9 @@ import {
   sellThroughByCategory,
   type DemandItem,
 } from "@/lib/metrics";
+import { CategoryFilter } from "@/components/category-filter";
 import { Bar, Card, PageHeader, SellerLink, StatTile, VerdictBadge } from "@/components/ui";
+import { feedBySlug } from "@/lib/whatnot/category-slug";
 
 export const dynamic = "force-dynamic";
 
@@ -19,16 +22,35 @@ function median(nums: number[]): number {
   return s[Math.floor(s.length / 2)];
 }
 
+function demandSubtitle(platform: Platform, signal: boolean): string {
+  if (platform === "tiktok" && signal) {
+    return "What's actually moving across the busiest live shows, so you source what sells — not a dead pile. Demand = units sold.";
+  }
+  if (platform === "tiktok") {
+    return "The live catalog + price ranges across the busiest shows.";
+  }
+  if (signal) {
+    return "What's moving across busy live shows. On Whatnot, demand = bids on the item currently being auctioned — not full sell-through.";
+  }
+  return "The live catalog + price ranges across the busiest shows. On Whatnot, per-item sell-through isn't exposed in a snapshot — true velocity unlocks once the collector has history.";
+}
+
 export default async function WhatsSellingPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ platform: string }>;
+  searchParams: Promise<{ category?: string }>;
 }) {
   const { platform } = await params;
+  const { category: categorySlug } = await searchParams;
   if (!isPlatform(platform)) notFound();
 
+  const activeFeed = feedBySlug(categorySlug);
   const ds = await getDataSource(platform);
-  const shows = await ds.getLiveShows();
+  const shows = await ds.getLiveShows(
+    activeFeed ? { category: activeFeed.slug } : undefined,
+  );
   const live = shows
     .filter((s) => s.status === "PLAYING")
     .sort((a, b) => b.activeViewers - a.activeViewers)
@@ -60,10 +82,19 @@ export default async function WhatsSellingPage({
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="What's Selling — right now">
-        {signal
-          ? "What's actually moving across the busiest live shows, so you source what sells — not a dead pile. Demand = units sold."
-          : "The live catalog + price ranges across the busiest shows. On Whatnot, per-item sell-through isn't exposed in a snapshot — true velocity unlocks once the collector has history."}
+        {demandSubtitle(platform, signal)}
+        {activeFeed && (
+          <span className="block mt-1 text-xs text-ink-faint">
+            Filtered to {activeFeed.label}
+          </span>
+        )}
       </PageHeader>
+
+      <CategoryFilter
+        platform={platform}
+        basePath={`/${platform}/whats-selling`}
+        activeSlug={activeFeed?.slug}
+      />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatTile label="Items live" value={rows.length} />
@@ -72,7 +103,7 @@ export default async function WhatsSellingPage({
           <StatTile
             label="Selling fast"
             value={rows.filter((r) => r.verdict === "hot").length}
-            sub="🔥 high demand"
+            sub="high demand"
           />
         ) : (
           <StatTile label="Median price" value={medPrice ? money(medPrice) : "—"} />
@@ -84,7 +115,11 @@ export default async function WhatsSellingPage({
         <Card title="No listing data">
           <p className="px-4 py-6 text-sm text-ink-muted">
             No live listings to analyze right now
-            {platform === "tiktok" ? " (TikTok sample data is limited)." : "."}
+            {activeFeed ? ` in ${activeFeed.label}` : ""}. Check{" "}
+            <Link href={`/${platform}/best-time`} className="text-signal hover:underline">
+              Best Time
+            </Link>{" "}
+            for peak hours, or try another category.
           </p>
         </Card>
       ) : (

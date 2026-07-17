@@ -15,6 +15,17 @@ import {
 
 export const dynamic = "force-dynamic";
 
+function formatScheduledStart(startTime: number): string {
+  if (!startTime) return "time TBD";
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(startTime));
+}
+
 export default async function SellerPage({
   params,
 }: {
@@ -86,6 +97,25 @@ export default async function SellerPage({
         <StatTile label="Reviews (sales proxy)" value={ref?.numReviews?.toLocaleString() ?? "—"} />
         <StatTile label="Rating" value={ref?.rating?.toFixed(1) ?? "—"} />
       </div>
+
+      {(live.length > 0 || scheduled.length > 0) && (
+        <p className="text-sm text-ink-muted">
+          On the calendar now:{" "}
+          <span className="font-semibold text-ink">
+            {live.length} live
+            {scheduled.length > 0 && ` · ${scheduled.length} upcoming`}
+          </span>
+          {scheduled.length > 0 && (
+            <>
+              {" "}
+              — next up{" "}
+              {formatScheduledStart(
+                [...scheduled].sort((a, b) => a.startTime - b.startTime)[0]?.startTime ?? 0,
+              )}
+            </>
+          )}
+        </p>
+      )}
 
       {/* What they price at */}
       {pp.count > 0 && (
@@ -159,13 +189,20 @@ export default async function SellerPage({
                     {s.categories.join(", ")}
                   </div>
                 </div>
-                <div className="text-sm tabular-nums flex items-center gap-2 font-semibold">
+                <div className="text-sm tabular-nums flex flex-col items-end gap-0.5 font-semibold">
                   {s.status === "PLAYING" ? (
-                    <LiveDot />
+                    <>
+                      <LiveDot />
+                      <span>{s.activeViewers.toLocaleString()} viewers</span>
+                    </>
                   ) : (
-                    <span className="font-normal text-ink-faint">scheduled</span>
+                    <>
+                      <span className="font-normal text-ink-faint">scheduled</span>
+                      <span className="text-xs font-normal text-ink-muted">
+                        {formatScheduledStart(s.startTime)}
+                      </span>
+                    </>
                   )}
-                  {s.status === "PLAYING" && s.activeViewers.toLocaleString()}
                 </div>
               </li>
             ))}

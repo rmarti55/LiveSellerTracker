@@ -253,6 +253,19 @@ export class RealWhatnot implements DataSource {
     }
 
     const tracked = getTrackedFeeds();
+    const slugFeed = opts?.category
+      ? tracked.find((f) => f.slug === opts.category)
+      : undefined;
+    if (slugFeed) {
+      const perFeedLimit = opts?.limit ?? PER_FEED_LIMIT;
+      const result = await this.fetchFeedShows(slugFeed, perFeedLimit);
+      this.lastScope = {
+        feeds: [result.feed],
+        mergedCount: result.shows.length,
+      };
+      return result.shows;
+    }
+
     const perFeedLimit = opts?.limit ?? PER_FEED_LIMIT;
     const results = await Promise.all(
       tracked.map((feed) => this.fetchFeedShows(feed, perFeedLimit)),

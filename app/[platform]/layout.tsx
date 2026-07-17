@@ -22,7 +22,7 @@ export default async function PlatformLayout({
       <PlatformNav platform={platform} sourceLabel={sourceLabel(platform)} />
       <main className="mx-auto w-full max-w-6xl px-4 py-8 flex-1">{children}</main>
       <footer className="border-t border-line py-4 text-center text-xs text-ink-faint">
-        Public market data · built for live-sellers
+        Public market data · built for live-sellers · Times in Pacific Time
       </footer>
     </>
   );

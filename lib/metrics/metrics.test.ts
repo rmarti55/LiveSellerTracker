@@ -68,6 +68,17 @@ describe("bestTimeToGoLive", () => {
     const expected = FIXTURE_SHOWS.reduce((s, x) => s + x.activeViewers, 0);
     expect(total).toBe(expected);
   });
+
+  it("buckets a show into its Pacific start hour", () => {
+    const show = {
+      ...FIXTURE_SHOWS[0],
+      startTime: Date.UTC(2024, 6, 15, 17, 0, 0), // 10:00 AM PDT
+      activeViewers: 999,
+    };
+    const buckets = bestTimeToGoLive([show]);
+    expect(buckets[10].totalViewers).toBe(999);
+    expect(buckets[10].showCount).toBe(1);
+  });
 });
 
 describe("productDemand", () => {
