@@ -56,6 +56,47 @@ export function Bar({ value, max }: { value: number; max: number }) {
   );
 }
 
+/** Human-readable duration since a show went live. */
+export function formatTimeLive(startTime: number, now = Date.now()): string {
+  const mins = Math.max(0, Math.floor((now - startTime) / 60_000));
+  if (mins < 60) return `live ${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  const rem = mins % 60;
+  return rem > 0 ? `live ${hrs}h ${rem}m` : `live ${hrs}h`;
+}
+
+function formatAudienceShare(viewers: number, totalViewers: number): string {
+  if (totalViewers <= 0 || viewers <= 0) return "0% of live audience";
+  const pct = (viewers / totalViewers) * 100;
+  if (pct < 1) return "<1% of live audience";
+  if (pct >= 10) return `${Math.round(pct)}% of live audience`;
+  return `${pct.toFixed(1)}% of live audience`;
+}
+
+/** Live viewer count, bar, and share-of-audience label as one unit. */
+export function ViewerBar({
+  viewers,
+  totalViewers,
+}: {
+  viewers: number;
+  totalViewers: number;
+}) {
+  return (
+    <div className="w-44 shrink-0 text-right">
+      <div className="text-sm font-semibold tabular-nums">
+        {viewers.toLocaleString()}{" "}
+        <span className="text-xs font-normal text-black/50 dark:text-white/50">viewers</span>
+      </div>
+      <div className="mt-1">
+        <Bar value={viewers} max={totalViewers} />
+      </div>
+      <div className="mt-0.5 text-[10px] text-black/40 dark:text-white/40">
+        {formatAudienceShare(viewers, totalViewers)}
+      </div>
+    </div>
+  );
+}
+
 export function VerdictBadge({ verdict }: { verdict: "hot" | "warm" | "cold" | "unknown" }) {
   const map = {
     hot: { emoji: "🔥", label: "Selling fast", cls: "bg-red-500/15 text-red-600 dark:text-red-400" },
