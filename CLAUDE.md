@@ -62,6 +62,9 @@ dashboard on stubs first, then flip seams to real one at a time.
 - Billing seam (later): stub ↔ real, key-gated.
 
 ## Constraints / guardrails
+- **UI/design (locked):** see `docs/DESIGN.md` for fonts, tokens, components, and nav patterns. No
+  unsolicited design refactors — extend via `components/ui.tsx` primitives unless the user explicitly
+  asks for a design change.
 - **Legal:** public, no-auth data only. Never capture/store `streamToken` or any private/logged-in
   data. Rate-limit and back off. Get counsel before commercial-scale scraping.
 - **Vercel:** Cron granularity is tier-limited (hobby ≈ daily, Pro ≈ per-minute). Per-second live

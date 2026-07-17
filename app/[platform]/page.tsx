@@ -2,9 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getDataSource, isPlatform } from "@/lib/core";
 import { bestTimeToGoLive, categoryDemand } from "@/lib/metrics";
+import {
+  bestTimeFromHistory,
+  loadHistoryContext,
+} from "@/lib/history";
 import { CategoryFilter } from "@/components/category-filter";
 import { DoThisNext } from "@/components/do-this-next";
 import { ScopeBanner } from "@/components/scope-banner";
+import { HistoryBanner } from "@/components/history-banner";
+import { TrackMyShop } from "@/components/track-my-shop";
+import { MyShopProgressLink } from "@/components/my-shop-progress";
 import {
   Card,
   formatTimeLive,
@@ -32,7 +39,10 @@ export default async function Overview({
   if (!isPlatform(platform)) notFound();
 
   const activeFeed = feedBySlug(categorySlug);
-  const ds = await getDataSource(platform);
+  const [ds, history] = await Promise.all([
+    getDataSource(platform),
+    loadHistoryContext(platform),
+  ]);
   const shows = await ds.getLiveShows(
     activeFeed ? { category: activeFeed.slug } : undefined,
   );
@@ -49,7 +59,10 @@ export default async function Overview({
   const scheduled = shows.filter((s) => s.status === "CREATED").length;
   const maxViewers = Math.max(1, ...live.map((s) => s.activeViewers));
   const hotCategory = demand.find((d) => d.liveShows > 0)?.category ?? demand[0]?.category ?? null;
-  const hours = bestTimeToGoLive(shows);
+  const useHistory = history.mode === "history" && history.rows.length > 0;
+  const hours = useHistory
+    ? bestTimeFromHistory(history.rows)
+    : bestTimeToGoLive(shows);
   const peakHour = hours.some((h) => h.totalViewers > 0)
     ? [...hours].sort((a, b) => b.totalViewers - a.totalViewers)[0].hour
     : null;
@@ -79,7 +92,16 @@ export default async function Overview({
 
       {scope && <ScopeBanner scope={scope} />}
 
+      <HistoryBanner mode={history.mode} daysAvailable={history.daysAvailable} />
+
       <DoThisNext platform={platform} hotCategory={hotCategory} peakHour={peakHour} />
+
+      {platform === "whatnot" && (
+        <>
+          <TrackMyShop platform={platform} />
+          <MyShopProgressLink platform={platform} />
+        </>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatTile

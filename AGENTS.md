@@ -7,3 +7,5 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Project context
 See `CLAUDE.md` for what this project is, the stack, the data-source facts from the spike, the seam
 architecture, and guardrails.
+
+**UI/design:** see `docs/DESIGN.md` (locked — do not change styling without explicit user request).

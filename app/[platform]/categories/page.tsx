@@ -4,7 +4,13 @@ import { getDataSource, isPlatform } from "@/lib/core";
 import { formatMoney } from "@/lib/core/types";
 import { categoryDemand, heatVerdict } from "@/lib/metrics";
 import { categoryPriceBands } from "@/lib/metrics/category-prices";
+import {
+  categoryTrendDeltas,
+  formatTrendDelta,
+  loadHistoryContext,
+} from "@/lib/history";
 import { CategoryFilter } from "@/components/category-filter";
+import { HistoryBanner } from "@/components/history-banner";
 import { Bar, Card, PageHeader, VerdictBadge } from "@/components/ui";
 import { feedBySlug, slugForCategoryLabel, withCategoryParam } from "@/lib/whatnot/category-slug";
 
@@ -22,13 +28,21 @@ export default async function CategoriesPage({
   if (!isPlatform(platform)) notFound();
 
   const activeFeed = feedBySlug(categorySlug);
-  const ds = await getDataSource(platform);
+  const [ds, history] = await Promise.all([
+    getDataSource(platform),
+    loadHistoryContext(platform),
+  ]);
   const shows = await ds.getLiveShows(
     activeFeed ? { category: activeFeed.slug } : undefined,
   );
   const demand = categoryDemand(shows);
   const max = Math.max(1, ...demand.map((d) => d.totalViewers));
   const priceBands = await categoryPriceBands(ds, shows);
+  const trends =
+    history.mode === "history"
+      ? categoryTrendDeltas(history.rows)
+      : [];
+  const trendByCat = new Map(trends.map((t) => [t.category, t]));
   const money = (c: number) => formatMoney({ amount: c, currency: "USD" });
 
   return (
@@ -48,6 +62,8 @@ export default async function CategoriesPage({
         activeSlug={activeFeed?.slug}
       />
 
+      <HistoryBanner mode={history.mode} daysAvailable={history.daysAvailable} />
+
       {demand.length === 0 ? (
         <Card title="No categories">
           <p className="px-4 py-6 text-sm text-ink-muted">
@@ -66,6 +82,7 @@ export default async function CategoriesPage({
               <tr className="border-b border-line-soft">
                 <th className="text-left font-medium px-4 py-2">Category</th>
                 <th className="text-left font-medium px-4 py-2">Demand</th>
+                <th className="text-right font-medium px-4 py-2">7-day trend</th>
                 <th className="text-right font-medium px-4 py-2">Price band</th>
                 <th className="text-right font-medium px-4 py-2">Live shows</th>
                 <th className="text-right font-medium px-4 py-2">Watchlist</th>
@@ -76,6 +93,7 @@ export default async function CategoriesPage({
             <tbody className="divide-y divide-line-soft">
               {demand.map((d) => {
                 const pp = priceBands.get(d.category);
+                const trend = trendByCat.get(d.category);
                 const catSlug = slugForCategoryLabel(d.category);
                 const filterHref = catSlug
                   ? withCategoryParam(`/${platform}/whats-selling`, catSlug)
@@ -94,6 +112,9 @@ export default async function CategoriesPage({
                     </td>
                     <td className="px-4 py-2.5">
                       <VerdictBadge verdict={heatVerdict(d.totalViewers, max)} />
+                    </td>
+                    <td className="px-4 py-2.5 text-right tabular-nums text-xs text-ink-muted">
+                      {trend ? formatTrendDelta(trend.deltaPct) : "—"}
                     </td>
                     <td className="px-4 py-2.5 text-right tabular-nums text-xs text-ink-muted">
                       {pp && pp.count > 0 ? (

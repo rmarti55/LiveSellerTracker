@@ -9,6 +9,12 @@ import {
   type DemandItem,
 } from "@/lib/metrics";
 import { CategoryFilter } from "@/components/category-filter";
+import {
+  categoryTrendDeltas,
+  formatTrendDelta,
+  loadHistoryContext,
+} from "@/lib/history";
+import { HistoryBanner } from "@/components/history-banner";
 import { Bar, Card, PageHeader, SellerLink, StatTile, VerdictBadge } from "@/components/ui";
 import { feedBySlug } from "@/lib/whatnot/category-slug";
 
@@ -47,7 +53,10 @@ export default async function WhatsSellingPage({
   if (!isPlatform(platform)) notFound();
 
   const activeFeed = feedBySlug(categorySlug);
-  const ds = await getDataSource(platform);
+  const [ds, history] = await Promise.all([
+    getDataSource(platform),
+    loadHistoryContext(platform),
+  ]);
   const shows = await ds.getLiveShows(
     activeFeed ? { category: activeFeed.slug } : undefined,
   );
@@ -72,7 +81,21 @@ export default async function WhatsSellingPage({
   );
 
   const rows = productDemand(items);
-  const cats = sellThroughByCategory(rows);
+  let cats = sellThroughByCategory(rows);
+  const trends =
+    history.mode === "history"
+      ? categoryTrendDeltas(history.rows)
+      : [];
+  const trendByCat = new Map(trends.map((t) => [t.category, t]));
+
+  if (trends.length > 0) {
+    cats = [...cats].sort((a, b) => {
+      const da = trendByCat.get(a.category)?.deltaPct ?? 0;
+      const db = trendByCat.get(b.category)?.deltaPct ?? 0;
+      return db - da;
+    });
+  }
+
   const signal = hasDemandSignal(rows);
   const money = (c: number) => formatMoney({ amount: c, currency: "USD" });
   const priced = rows.filter((r) => r.priceCents > 0);
@@ -95,6 +118,8 @@ export default async function WhatsSellingPage({
         basePath={`/${platform}/whats-selling`}
         activeSlug={activeFeed?.slug}
       />
+
+      <HistoryBanner mode={history.mode} daysAvailable={history.daysAvailable} />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <StatTile label="Items live" value={rows.length} />
@@ -126,17 +151,26 @@ export default async function WhatsSellingPage({
         <>
           <Card
             title={
-              signal
-                ? "What category is selling — source into demand"
-                : "Categories live now — price ranges"
+              trends.length > 0
+                ? "Categories by momentum — source into what's rising"
+                : signal
+                  ? "What category is selling — source into demand"
+                  : "Categories live now — price ranges"
             }
           >
             <ul className="divide-y divide-line-soft">
               {[...cats]
                 .sort((a, b) => (signal ? b.demandScore - a.demandScore : b.items - a.items))
-                .map((c) => (
+                .map((c) => {
+                  const trend = trendByCat.get(c.category);
+                  return (
                   <li key={c.category} className="px-4 py-3 flex items-center gap-3 text-sm">
                     <span className="flex-1 truncate font-semibold">{c.category}</span>
+                    {trend && (
+                      <span className="text-xs tabular-nums text-ink-muted w-16 text-right">
+                        {formatTrendDelta(trend.deltaPct)}
+                      </span>
+                    )}
                     <span className="text-xs text-ink-faint">{c.items} items</span>
                     {signal ? <VerdictBadge verdict={c.verdict} /> : null}
                     <span className="w-24 text-right tabular-nums text-ink-muted">
@@ -148,7 +182,8 @@ export default async function WhatsSellingPage({
                       </span>
                     )}
                   </li>
-                ))}
+                  );
+                })}
             </ul>
           </Card>
 

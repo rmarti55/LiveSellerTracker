@@ -4,6 +4,16 @@ import { getDataSource, isPlatform } from "@/lib/core";
 import { formatMoney } from "@/lib/core/types";
 import { pricePoints, productDemand, type DemandItem } from "@/lib/metrics";
 import {
+  formatSellerVelocityLine,
+  getHistoryDb,
+  HISTORY_FULL_DAYS,
+  loadHistoryContext,
+  sellerReviewPoints,
+  sellerReviewVelocityTrend,
+} from "@/lib/history";
+import { YourProgressBadge } from "@/components/my-shop-progress";
+import { HistoryBanner } from "@/components/history-banner";
+import {
   Bar,
   Card,
   LiveDot,
@@ -14,6 +24,8 @@ import {
 } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
+
+const DAY_MS = 86_400_000;
 
 function formatScheduledStart(startTime: number): string {
   if (!startTime) return "time TBD";
@@ -36,7 +48,11 @@ export default async function SellerPage({
 
   const uname = decodeURIComponent(username);
   const ds = await getDataSource(platform);
-  const [seller, shows] = await Promise.all([ds.getSeller(uname), ds.getLiveShows()]);
+  const [seller, shows, historyCtx] = await Promise.all([
+    ds.getSeller(uname),
+    ds.getLiveShows(),
+    loadHistoryContext(platform),
+  ]);
   const theirShows = shows.filter((s) => s.seller.username === uname);
   const live = theirShows.filter((s) => s.status === "PLAYING");
   const scheduled = theirShows.filter((s) => s.status === "CREATED");
@@ -69,12 +85,26 @@ export default async function SellerPage({
   const categories = [...catCounts.entries()].sort((a, b) => b[1] - a[1]);
   const money = (c: number) => formatMoney({ amount: c, currency: "USD" });
 
+  let velocityLine: string | null = null;
+  let velocityDirection: "up" | "flat" | "down" | null = null;
+  const db = getHistoryDb();
+  if (db && historyCtx.mode !== "snapshot") {
+    const since = new Date(Date.now() - HISTORY_FULL_DAYS * DAY_MS);
+    const points = await sellerReviewPoints(db, platform, uname, since);
+    const trend = sellerReviewVelocityTrend(points);
+    if (trend) {
+      velocityLine = formatSellerVelocityLine(trend);
+      velocityDirection = trend.direction;
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title={
           <>
             {uname}
+            <YourProgressBadge sellerUsername={uname} />
             {ref?.isPremierShop && <PremierBadge />}
           </>
         }
@@ -89,6 +119,26 @@ export default async function SellerPage({
       >
         Competitor teardown — how they sell, what they price at, and what&apos;s moving.
       </PageHeader>
+
+      <HistoryBanner
+        mode={historyCtx.mode}
+        daysAvailable={historyCtx.daysAvailable}
+      />
+
+      {velocityLine && (
+        <Card title="Review velocity">
+          <div className="px-4 py-4 text-sm">
+            <p className="font-semibold text-ink">{velocityLine}</p>
+            <p className="mt-2 text-ink-muted">
+              {velocityDirection === "up"
+                ? "Slow nights happen — this trend is your proof you're still growing."
+                : velocityDirection === "down"
+                  ? "Recent review pace is cooling — worth checking category timing and pricing."
+                  : "Review pace is steady over the collected window."}
+            </p>
+          </div>
+        </Card>
+      )}
 
       {/* Reach & cadence */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

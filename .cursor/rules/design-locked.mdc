@@ -1,0 +1,15 @@
+---
+description: LiveIntel UI is locked — read docs/DESIGN.md before touching styling
+globs: app/**/*.tsx, app/**/*.css, components/**/*.tsx
+alwaysApply: false
+---
+
+# LiveIntel design is locked
+
+Before editing UI, CSS, or shared components in matched files:
+
+1. Read [docs/DESIGN.md](../../docs/DESIGN.md).
+2. Do **not** change fonts, colors, nav chrome, typography scale, or shared component styling unless the user explicitly asks for a design change.
+3. Extend the UI by composing primitives from `components/ui.tsx` (`PageHeader`, `StatTile`, `Card`, `Bar`, `ViewerBar`, badges, links).
+4. For platform toggle, section tabs, and magnitude bars, use the bulletproof patterns documented in DESIGN.md (`.platform-active`, `.bar-track`, `.bar-fill`, `teal-*` / `gray-*`) — never custom `@theme` utilities like `bg-signal` for critical chrome.
+5. No unsolicited design refactors, font swaps, or “polish” passes.
